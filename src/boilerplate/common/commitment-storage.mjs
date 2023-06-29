@@ -2,72 +2,78 @@
 /**
 Logic for storing and retrieving commitments from a mongo DB.
 */
-import config from 'config';
-import gen from 'general-number';
-import mongo from './mongo.mjs';
-import logger from './logger.mjs';
+import config from "config";
+import gen from "general-number";
+import mongo from "./mongo.mjs";
+import logger from "./logger.mjs";
 import utils from "zkp-utils";
-import { poseidonHash } from './number-theory.mjs';
-import { generateProof } from './zokrates.mjs';
-
+import { poseidonHash } from "./number-theory.mjs";
+import { generateProof } from "./zokrates.mjs";
 
 const { MONGO_URL, COMMITMENTS_DB, COMMITMENTS_COLLECTION } = config;
 const { generalise } = gen;
 
 // function to format a commitment for a mongo db and store it
-export async function storeCommitment(commitment) {
-  const connection = await mongo.connection(MONGO_URL);
-  const db = connection.db(COMMITMENTS_DB);
-  // we'll also compute and store the nullifier hash.
-  const nullifierHash = commitment.secretKey ? poseidonHash([
-    BigInt(commitment.preimage.stateVarId.hex(32)),
-    BigInt(commitment.secretKey.hex(32)),
-    BigInt(commitment.preimage.salt.hex(32)),
-  ]) : '';
-  const preimage = generalise(commitment.preimage).all.hex(32);
-  preimage.value = generalise(commitment.preimage.value).all ? generalise(commitment.preimage.value).all.integer : generalise(commitment.preimage.value).integer;
-  const data = {
-    _id: commitment.hash.hex(32),
-	name: commitment.name,
-	mappingKey: commitment.mappingKey ? commitment.mappingKey : null,
-	secretKey: commitment.secretKey? commitment.secretKey.hex(32) : null,
-    preimage,
-    isNullified: commitment.isNullified,
-    nullifier: commitment.secretKey? nullifierHash.hex(32) : null,
-  };
-  logger.debug(`Storing commitment ${data._id}`);
-  return db.collection(COMMITMENTS_COLLECTION).insertOne(data);
+export async function storeCommitment(commitment, contractId) {
+	const connection = await mongo.connection(MONGO_URL);
+	const db = connection.db(COMMITMENTS_DB);
+	// we'll also compute and store the nullifier hash.
+	const nullifierHash = commitment.secretKey
+		? poseidonHash([
+				BigInt(commitment.preimage.stateVarId.hex(32)),
+				BigInt(commitment.secretKey.hex(32)),
+				BigInt(commitment.preimage.salt.hex(32)),
+		  ])
+		: "";
+	const preimage = generalise(commitment.preimage).all.hex(32);
+	preimage.value = generalise(commitment.preimage.value).all
+		? generalise(commitment.preimage.value).all.integer
+		: generalise(commitment.preimage.value).integer;
+	const data = {
+		_id: commitment.hash.hex(32),
+		name: commitment.name,
+		mappingKey: commitment.mappingKey ? commitment.mappingKey : null,
+		secretKey: commitment.secretKey ? commitment.secretKey.hex(32) : null,
+		preimage,
+		isNullified: commitment.isNullified,
+		nullifier: commitment.secretKey ? nullifierHash.hex(32) : null,
+	};
+	logger.debug(`Storing commitment ${data._id}`);
+	return db.collection(`${COMMITMENTS_COLLECTION}_${contractId}`).insertOne(data);
 }
 
 // function to retrieve commitment with a specified stateVarId
-export async function getCommitmentsById(id) {
+export async function getCommitmentsById(id, contractId) {
 	const connection = await mongo.connection(MONGO_URL);
 	const db = connection.db(COMMITMENTS_DB);
 	const commitments = await db
-	  .collection(COMMITMENTS_COLLECTION)
-	  .find({ 'preimage.stateVarId': generalise(id).hex(32) })
-	  .toArray();
+		.collection(`${COMMITMENTS_COLLECTION}_${contractId}`)
+		.find({ "preimage.stateVarId": generalise(id).hex(32) })
+		.toArray();
 	return commitments;
-  }
+}
 
 // function to retrieve commitment with a specified stateVarId
-export async function getCurrentWholeCommitment(id) {
+export async function getCurrentWholeCommitment(id, contractId) {
 	const connection = await mongo.connection(MONGO_URL);
 	const db = connection.db(COMMITMENTS_DB);
 	const commitment = await db
-	  .collection(COMMITMENTS_COLLECTION)
-	  .findOne({ 'preimage.stateVarId': generalise(id).hex(32), isNullified: false });
+		.collection(`${COMMITMENTS_COLLECTION}_${contractId}`)
+		.findOne({
+			"preimage.stateVarId": generalise(id).hex(32),
+			isNullified: false,
+		});
 	return commitment;
-  }
+}
 
 // function to retrieve commitment with a specified stateName
-export async function getCommitmentsByState(name, mappingKey = null) {
+export async function getCommitmentsByState(name, mappingKey = null, contractId) {
 	const connection = await mongo.connection(MONGO_URL);
 	const db = connection.db(COMMITMENTS_DB);
-	const query = { 'name': name };
-	if (mappingKey) query['mappingKey'] = generalise(mappingKey).integer;
+	const query = { name: name };
+	if (mappingKey) query["mappingKey"] = generalise(mappingKey).integer;
 	const commitments = await db
-		.collection(COMMITMENTS_COLLECTION)
+		.collection(`${COMMITMENTS_COLLECTION}_${contractId}`)
 		.find(query)
 		.toArray();
 	return commitments;
@@ -76,71 +82,74 @@ export async function getCommitmentsByState(name, mappingKey = null) {
 /**
  * @returns all the commitments existent in this database.
  */
- export async function getAllCommitments() {
+export async function getAllCommitments(contractId) {
 	const connection = await mongo.connection(MONGO_URL);
 	const db = connection.db(COMMITMENTS_DB);
-	const allCommitments = await db.collection(COMMITMENTS_COLLECTION).find().toArray();
+	const allCommitments = await db
+		.collection(`${COMMITMENTS_COLLECTION}_${contractId}`)
+		.find()
+		.toArray();
 	return allCommitments;
-  }
-
+}
 
 // function to update an existing commitment
-export async function updateCommitment(commitment, updates) {
-  const connection = await mongo.connection(MONGO_URL);
-  const db = connection.db(COMMITMENTS_DB);
-  const query = { _id: commitment._id };
-  const update = { $set: updates };
-  return db.collection(COMMITMENTS_COLLECTION).updateOne(query, update);
+export async function updateCommitment(commitment, updates, contractId) {
+	const connection = await mongo.connection(MONGO_URL);
+	const db = connection.db(COMMITMENTS_DB);
+	const query = { _id: commitment._id };
+	const update = { $set: updates };
+	return db.collection(`${COMMITMENTS_COLLECTION}_${contractId}`).updateOne(query, update);
 }
 
 // function to mark a commitment as nullified for a mongo db
-export async function markNullified(commitmentHash, secretKey = null) {
-    const connection = await mongo.connection(MONGO_URL);
+export async function markNullified(commitmentHash, secretKey = null, contractId) {
+	const connection = await mongo.connection(MONGO_URL);
 	const db = connection.db(COMMITMENTS_DB);
-    const query = { _id: commitmentHash.hex(32) };
-	const commitment = await db
-	.collection(COMMITMENTS_COLLECTION)
-	.findOne(query);
+	const query = { _id: commitmentHash.hex(32) };
+	const commitment = await db.collection(`${COMMITMENTS_COLLECTION}_${contractId}`).findOne(query);
 	const nullifier = poseidonHash([
 		BigInt(commitment.preimage.stateVarId),
 		BigInt(commitment.secretKey || secretKey),
 		BigInt(commitment.preimage.salt),
-	  ])
-    const update = {
-      $set: {
-        isNullified: true,
-		nullifier: generalise(nullifier).hex(32),
-      },
-    };
-    return db.collection(COMMITMENTS_COLLECTION).updateOne(query, update);
-  }
+	]);
+	const update = {
+		$set: {
+			isNullified: true,
+			nullifier: generalise(nullifier).hex(32),
+		},
+	};
+	return db.collection(`${COMMITMENTS_COLLECTION}_${contractId}`).updateOne(query, update);
+}
 
-
-  export function getInputCommitments(
+export function getInputCommitments(
 	publicKey,
 	value,
 	commitments,
 	isStruct = false
 ) {
-	
 	const possibleCommitments = commitments.filter(
 		(entry) => entry.preimage.publicKey === publicKey && !entry.isNullified
 	);
 	if (isStruct) {
-
-		let possibleCommitmentsProp = getStructInputCommitments(value, possibleCommitments);
-		if (
-			possibleCommitmentsProp.length > 0
-		)
-			return [true, possibleCommitmentsProp[0][0], possibleCommitmentsProp[0][1]];
+		let possibleCommitmentsProp = getStructInputCommitments(
+			value,
+			possibleCommitments
+		);
+		if (possibleCommitmentsProp.length > 0)
+			return [
+				true,
+				possibleCommitmentsProp[0][0],
+				possibleCommitmentsProp[0][1],
+			];
 		return null;
 	}
 	possibleCommitments.sort(
 		(commitA, commitB) =>
-			parseInt(commitB.preimage.value, 10) - parseInt(commitA.preimage.value, 10)
+			parseInt(commitB.preimage.value, 10) -
+			parseInt(commitA.preimage.value, 10)
 	);
 	var commitmentsSum = 0;
-	possibleCommitments.forEach(commit => {
+	possibleCommitments.forEach((commit) => {
 		commitmentsSum += parseInt(commit.preimage.value, 10);
 	});
 	if (
@@ -154,12 +163,9 @@ export async function markNullified(commitmentHash, secretKey = null) {
 	return null;
 }
 
-function getStructInputCommitments(
-	value,
-	possibleCommitments
-) {
+function getStructInputCommitments(value, possibleCommitments) {
 	if (possibleCommitments.length < 2) {
-		logger.warn('Enough Commitments dont exists to use.' )
+		logger.warn("Enough Commitments dont exists to use.");
 		return null;
 	}
 	let possibleCommitmentsProp = [];
@@ -173,7 +179,10 @@ function getStructInputCommitments(
 		if (!possibleCommitmentsProp.length) {
 			if (
 				parseInt(Object.values(possibleCommitments[0].preimage.value)[i], 10) +
-					parseInt(Object.values(possibleCommitments[1].preimage.value)[i], 10) >=
+					parseInt(
+						Object.values(possibleCommitments[1].preimage.value)[i],
+						10
+					) >=
 				parseInt(propValue, 10)
 			) {
 				possibleCommitmentsProp.push([
@@ -181,21 +190,34 @@ function getStructInputCommitments(
 					possibleCommitments[1],
 				]);
 			} else {
-				possibleCommitments.splice(0,2);
-				possibleCommitmentsProp = getStructInputCommitments(value, possibleCommitments);
+				possibleCommitments.splice(0, 2);
+				possibleCommitmentsProp = getStructInputCommitments(
+					value,
+					possibleCommitments
+				);
 			}
 		} else {
 			possibleCommitments.forEach((possibleCommit) => {
-				if (possibleCommitmentsProp.includes(possibleCommit)) possibleCommitmentsTemp.push(possibleCommit);
+				if (possibleCommitmentsProp.includes(possibleCommit))
+					possibleCommitmentsTemp.push(possibleCommit);
 			});
 			if (
-				possibleCommitmentsTemp.length > 1 && 
-					parseInt(Object.values(possibleCommitmentsTemp[0].preimage.value)[i], 10) +
-						parseInt(Object.values(possibleCommitmentsTemp[1].preimage.value)[i], 10) <
+				possibleCommitmentsTemp.length > 1 &&
+				parseInt(
+					Object.values(possibleCommitmentsTemp[0].preimage.value)[i],
+					10
+				) +
+					parseInt(
+						Object.values(possibleCommitmentsTemp[1].preimage.value)[i],
+						10
+					) <
 					parseInt(propValue, 10)
-				) {
-					possibleCommitments.splice(0,2);
-					possibleCommitmentsProp = getStructInputCommitments(value, possibleCommitments);
+			) {
+				possibleCommitments.splice(0, 2);
+				possibleCommitmentsProp = getStructInputCommitments(
+					value,
+					possibleCommitments
+				);
 			}
 		}
 	});
@@ -212,7 +234,7 @@ export async function joinCommitments(
 	witnesses,
 	instance,
 	contractAddr,
-	web3,
+	web3
 ) {
 	logger.warn(
 		"Existing Commitments are not appropriate and we need to call Join Commitment Circuit. It will generate proof to join commitments, this will require an on-chain verification"
@@ -325,16 +347,17 @@ export async function joinCommitments(
 			oldCommitment_root.integer,
 			[newCommitment.integer],
 			proof
-		).encodeABI();
+		)
+		.encodeABI();
 
 	let txParams = {
-			from: config.web3.options.defaultAccount,
-			to: contractAddr,
-			gas: config.web3.options.defaultGas,
-			gasPrice: config.web3.options.defaultGasPrice,
-			data: txData,
-			chainId: await web3.eth.net.getId(),
-		};
+		from: config.web3.options.defaultAccount,
+		to: contractAddr,
+		gas: config.web3.options.defaultGas,
+		gasPrice: config.web3.options.defaultGasPrice,
+		data: txData,
+		chainId: await web3.eth.net.getId(),
+	};
 
 	const key = config.web3.key;
 
@@ -364,4 +387,3 @@ export async function joinCommitments(
 
 	return { tx };
 }
-
