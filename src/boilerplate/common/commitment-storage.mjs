@@ -2,13 +2,13 @@
 /**
 Logic for storing and retrieving commitments from a mongo DB.
 */
-import config from "config";
-import gen from "general-number";
-import mongo from "./mongo.mjs";
-import logger from "./logger.mjs";
-import utils from "zkp-utils";
-import { poseidonHash } from "./number-theory.mjs";
-import { generateProof } from "./zokrates.mjs";
+import config from 'config';
+import gen from 'general-number';
+import mongo from './mongo.mjs';
+import logger from './logger.mjs';
+import utils from 'zkp-utils';
+import { poseidonHash } from './number-theory.mjs';
+import { generateProof } from './zokrates.mjs';
 
 const { MONGO_URL, COMMITMENTS_DB, COMMITMENTS_COLLECTION } = config;
 const { generalise } = gen;
@@ -24,7 +24,7 @@ export async function storeCommitment(commitment, contractId) {
 				BigInt(commitment.secretKey.hex(32)),
 				BigInt(commitment.preimage.salt.hex(32)),
 		  ])
-		: "";
+		: '';
 	const preimage = generalise(commitment.preimage).all.hex(32);
 	preimage.value = generalise(commitment.preimage.value).all
 		? generalise(commitment.preimage.value).all.integer
@@ -48,7 +48,7 @@ export async function getCommitmentsById(id, contractId) {
 	const db = connection.db(COMMITMENTS_DB);
 	const commitments = await db
 		.collection(`${COMMITMENTS_COLLECTION}_${contractId}`)
-		.find({ "preimage.stateVarId": generalise(id).hex(32) })
+		.find({ 'preimage.stateVarId': generalise(id).hex(32) })
 		.toArray();
 	return commitments;
 }
@@ -60,7 +60,7 @@ export async function getCurrentWholeCommitment(id, contractId) {
 	const commitment = await db
 		.collection(`${COMMITMENTS_COLLECTION}_${contractId}`)
 		.findOne({
-			"preimage.stateVarId": generalise(id).hex(32),
+			'preimage.stateVarId': generalise(id).hex(32),
 			isNullified: false,
 		});
 	return commitment;
@@ -71,7 +71,7 @@ export async function getCommitmentsByState(name, mappingKey = null, contractId)
 	const connection = await mongo.connection(MONGO_URL);
 	const db = connection.db(COMMITMENTS_DB);
 	const query = { name: name };
-	if (mappingKey) query["mappingKey"] = generalise(mappingKey).integer;
+	if (mappingKey) query['mappingKey'] = generalise(mappingKey).integer;
 	const commitments = await db
 		.collection(`${COMMITMENTS_COLLECTION}_${contractId}`)
 		.find(query)
@@ -165,7 +165,7 @@ export function getInputCommitments(
 
 function getStructInputCommitments(value, possibleCommitments) {
 	if (possibleCommitments.length < 2) {
-		logger.warn("Enough Commitments dont exists to use.");
+		logger.warn('Enough Commitments dont exists to use.');
 		return null;
 	}
 	let possibleCommitmentsProp = [];
@@ -237,7 +237,7 @@ export async function joinCommitments(
 	web3
 ) {
 	logger.warn(
-		"Existing Commitments are not appropriate and we need to call Join Commitment Circuit. It will generate proof to join commitments, this will require an on-chain verification"
+		'Existing Commitments are not appropriate and we need to call Join Commitment Circuit. It will generate proof to join commitments, this will require an on-chain verification'
 	);
 
 	const oldCommitment_0_prevSalt = generalise(commitments[0].preimage.salt);
@@ -265,7 +265,7 @@ export async function joinCommitments(
 		oldCommitment_stateVarId = generalise(
 			utils.mimcHash(
 				[generalise(stateVarId[0]).bigInt, generalise(stateVarId[1]).bigInt],
-				"ALT_BN_254"
+				'ALT_BN_254'
 			)
 		).hex(32);
 	}
@@ -334,7 +334,7 @@ export async function joinCommitments(
 		newCommitment.integer,
 	].flat(Infinity);
 
-	const res = await generateProof("joinCommitments", allInputs);
+	const res = await generateProof('joinCommitments', allInputs);
 	const proof = generalise(Object.values(res.proof).flat(Infinity))
 		.map((coeff) => coeff.integer)
 		.flat(Infinity);
@@ -365,7 +365,7 @@ export async function joinCommitments(
 
 	const sendTxn = await web3.eth.sendSignedTransaction(signed.rawTransaction);
 
-	let tx = await instance.getPastEvents("allEvents");
+	let tx = await instance.getPastEvents('allEvents');
 
 	tx = tx[0];
 

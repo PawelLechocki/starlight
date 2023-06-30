@@ -1,7 +1,7 @@
-import axios from "axios";
-import config from "config";
-import { getContractAddress } from "./contract.mjs";
-import logger from "./logger.mjs";
+import axios from 'axios';
+import config from 'config';
+import { getContractAddress } from './contract.mjs';
+import logger from './logger.mjs';
 // rough draft of timber service - we may not need treeids but kept in just in case
 const { url } = config.merkleTree;
 export const startEventFilter = async (contractName, address) => {
@@ -15,18 +15,20 @@ export const startEventFilter = async (contractName, address) => {
 		logger.http(
 			`\nCalling /start for '${contractName}' tree and address '${contractAddress}'`
 		);
+		logger.info(`Using startEventFilter with ${contractAddress}, ${contractName}, ${contractId}`)
 		const response = await axios.post(
 			`${url}/start`,
 			{
 				contractAddress,
 				contractName,
 				contractId
+				//treeId
 			},
 			{
 				timeout: 3600000,
 			}
 		);
-		logger.http("Timber Response:", response.data.data);
+		logger.http('Timber Response:', response.data.data);
 		return response.data.data;
 	} catch (error) {
 		throw new Error(error);
@@ -47,6 +49,7 @@ export const getLeafIndex = async (contractName, leafValue, address, contractId)
 	let errorCount = 0;
 	while (errorCount < 20) {
 		try {
+			logger.info(`Using getLeafIndex with ${contractName}, ${leafValue}, ${address}, ${contractId}`)
 			const response = await axios.get(
 				`${url}/leaf/value`,
 				{
@@ -62,17 +65,17 @@ export const getLeafIndex = async (contractName, leafValue, address, contractId)
 					timeout: 3600000,
 				}
 			);
-			logger.http("Timber Response:", response.data.data);
+			logger.http('Timber Response:', response.data.data);
 			if (response.data.data !== null) {
 				leafIndex = response.data.data.leafIndex;
 				if (leafIndex) break;
 				break;
 			} else {
-				throw new Error("leaf not found");
+				throw new Error('leaf not found');
 			}
 		} catch (err) {
 			errorCount++;
-			logger.warn("Unable to get leaf - will try again in 3 seconds");
+			logger.warn('Unable to get leaf - will try again in 3 seconds');
 			await new Promise((resolve) => setTimeout(() => resolve(), 3000));
 		}
 	}
@@ -87,6 +90,10 @@ export const getRoot = async (contractName, address) => {
 		if (!contractAddress) {
 			contractAddress = await getContractAddress(contractName);
 		}
+
+		logger.info(`Using getRoot with ${contractAddress}, ${contractName}, ${contractId}`);
+
+
 		const response = await axios.patch(
 			`${url}/update`,
 			{
@@ -99,9 +106,9 @@ export const getRoot = async (contractName, address) => {
 				timeout: 3600000,
 			}
 		);
-		logger.http("Timber Response:", response.data.data.latestRecalculation);
+		logger.http('Timber Response:', response.data.data.latestRecalculation);
 		if (response.data.data === null)
-			throw new Error("\nNo record found in Timber");
+			throw new Error('\nNo record found in Timber');
 		return response.data.data.latestRecalculation.root;
 	} catch (error) {
 		throw new Error(error);
@@ -110,10 +117,13 @@ export const getRoot = async (contractName, address) => {
 export const getSiblingPath = async (contractName, leafIndex, leafValue, contractId) => {
 	logger.http(`\nCalling /siblingPath/${leafIndex} for ${contractName} tree`);
 	// const treeId = functionName;
+	logger.info(`Using getSiblingPath with ${contractName}, ${contractId}`)
 	let contractAddress = contractId;
+	logger.info('trying to fetch contract address with getContractAddress() (pls get rid of this)')
 	if (!contractId) {
 		contractAddress = await getContractAddress(contractName);
-	}
+	}	
+
 	if (leafIndex === undefined) {
 		if (!leafValue) throw new Error(`No leafIndex xor leafValue specified.`);
 		// eslint-disable-next-line no-param-reassign
@@ -123,12 +133,15 @@ export const getSiblingPath = async (contractName, leafIndex, leafValue, contrac
 	let errorCount = 0;
 	while (errorCount < 20) {
 		try {
+			logger.info(`Sending a getSiblingPath request with ${contractName}, ${contractAddress}, ${contractId}`)
+
 			const response = await axios.get(
 				`${url}/siblingPath/${leafIndex}`, //
 				{
 					data: {
 						contractAddress,
 						contractName,
+						// treeId,
 						contractId
 					},
 				},
@@ -141,11 +154,11 @@ export const getSiblingPath = async (contractName, leafIndex, leafValue, contrac
 				if (siblingPath) break;
 				break;
 			} else {
-				throw new Error("leaf not found");
+				throw new Error('leaf not found');
 			}
 		} catch (err) {
 			errorCount++;
-			logger.warn("Unable to get leaf - will try again in 3 seconds");
+			logger.warn('Unable to get leaf - will try again in 3 seconds');
 			await new Promise((resolve) => setTimeout(() => resolve(), 3000));
 		}
 	}
@@ -153,6 +166,7 @@ export const getSiblingPath = async (contractName, leafIndex, leafValue, contrac
 };
 export const getMembershipWitness = async (contractName, leafValue, contractId) => {
 	logger.http(`\nCalling getMembershipWitness for ${contractName} tree`);
+	logger.info(`Using getMembershipWitness with ${contractName}, ${leafValue}, ${contractId}`);
 	try {
 		const leafIndex = await getLeafIndex(contractName, leafValue, undefined, contractId);
 		let path = await getSiblingPath(contractName, leafIndex, undefined, contractId);
