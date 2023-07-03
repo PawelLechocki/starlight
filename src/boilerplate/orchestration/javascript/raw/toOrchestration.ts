@@ -416,7 +416,7 @@ export const preimageBoilerPlate = (node: any) => {
 
 export const OrchestrationCodeBoilerPlate: any = (node: any) => {
   const lines: any[] = [];
-  const params:any[] = [];
+  const params:any[] = []; // I wish it could put contractAddress here, but for some reason it would leave an odd "contractAddress;" in middle of the file. This is why I've edited a few lines below instead.
   const states: string[] = [];
   const rtnparams: string[] = [];
   let stateName: string;
@@ -474,7 +474,7 @@ export const OrchestrationCodeBoilerPlate: any = (node: any) => {
       if (node.name === 'cnstrctr')
         return {
           signature: [
-            `\nexport default async function ${node.name}(${params} ${states}) {`,
+            `\nexport default async function ${node.name}(contractAddress, ${params} ${states}) {`,
             `\nprocess.exit(0);
           \n}`,
           ],
@@ -483,7 +483,7 @@ export const OrchestrationCodeBoilerPlate: any = (node: any) => {
         if(rtnparams.length == 0) {
           return {
             signature: [
-              `\nexport default async function ${node.name}(${params} ${states}) {`,
+              `\nexport default async function ${node.name}(contractAddress, ${params} ${states}) {`,
               `\n return  { tx, encEvent };
             \n}`,
             ],
@@ -494,7 +494,7 @@ export const OrchestrationCodeBoilerPlate: any = (node: any) => {
       if(rtnparams.includes('bool: bool')) {
         return {
           signature: [
-            `\nexport default async function ${node.name}(${params} ${states}) {`,
+            `\nexport default async function ${node.name}(contractAddress, ${params} ${states}) {`,
             `\n const bool = true; \n return  { tx, encEvent,  ${rtnparams} };
           \n}`,
           ],
@@ -504,7 +504,7 @@ export const OrchestrationCodeBoilerPlate: any = (node: any) => {
 
       return {
         signature: [
-          `\nexport default async function ${node.name}(${params} ${states}) {`,
+          `\nexport default async function ${node.name}(contractAddress, ${params} ${states}) {`,
           `\nreturn  { tx, encEvent, ${rtnparams} };
         \n}`,
         ],
