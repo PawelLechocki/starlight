@@ -416,7 +416,7 @@ export const preimageBoilerPlate = (node: any) => {
 
 export const OrchestrationCodeBoilerPlate: any = (node: any) => {
   const lines: any[] = [];
-  const params:any[] = []; // I wish it could put contractAddress here, but for some reason it would leave an odd "contractAddress;" in middle of the file. This is why I've edited a few lines below instead.
+  const params:any[] = []; // I wish it could put contractAddress here, but for some reason it would leave an odd "contractAddress;" in middle of the file. This is why I've edited the few lines below instead.
   const states: string[] = [];
   const rtnparams: string[] = [];
   let stateName: string;
