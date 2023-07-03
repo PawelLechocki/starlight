@@ -41,7 +41,7 @@ class BoilerplateGenerator {
           \n // Initialise commitment preimage of whole accessed state:
           ${stateVarIds.join('\n')}
           \nlet ${stateName}_commitmentExists = true;
-          \nconst ${stateName}_commitment = await getCurrentWholeCommitment(${stateName}_stateVarId);
+          \nconst ${stateName}_commitment = await getCurrentWholeCommitment(${stateName}_stateVarId, contractId);
           \nconst ${stateName}_preimage = ${stateName}_commitment.preimage;
           \nconst ${stateName} = generalise(${stateName}_preimage.value);`];
         default:
@@ -50,7 +50,7 @@ class BoilerplateGenerator {
               ${stateVarIds.join('\n')}
               \nlet ${stateName}_commitmentExists = true;
               let ${stateName}_witnessRequired = true;
-              \nconst ${stateName}_commitment = await getCurrentWholeCommitment(${stateName}_stateVarId);
+              \nconst ${stateName}_commitment = await getCurrentWholeCommitment(${stateName}_stateVarId, contractId);
               \nlet ${stateName}_preimage = {
               \tvalue: ${structProperties ? `{` + structProperties.map(p => `${p}: 0`) + `}` : `0`},
               \tsalt: 0,
@@ -73,7 +73,7 @@ class BoilerplateGenerator {
       return [
         `
         \n\n// Read dbs for keys and previous commitment values:
-        \nif (!fs.existsSync(keyDb)) await registerKey(utils.randomHex(31), '${contractName}', ${onChainKeyRegistry});
+        \nif (!fs.existsSync(keyDb)) await registerKey(utils.randomHex(31), '${contractName}', ${onChainKeyRegistry}, contractAddress);
         const keys = JSON.parse(
                     fs.readFileSync(keyDb, 'utf-8', err => {
                       console.log(err);
@@ -131,7 +131,7 @@ class BoilerplateGenerator {
               \n\n// read preimage for decremented state
               ${stateName}_newOwnerPublicKey = ${newOwnerStatment}
               ${stateVarIds.join('\n')}
-              \nlet ${stateName}_preimage = await getCommitmentsById(${stateName}_stateVarId);
+              \nlet ${stateName}_preimage = await getCommitmentsById(${stateName}_stateVarId, contractId);
               \nconst ${stateName}_newCommitmentValue = generalise([${Object.values(increment).map((inc) => `generalise(${inc})`)}]).all;
 
               \nlet [${stateName}_commitmentFlag, ${stateName}_0_oldCommitment, ${stateName}_1_oldCommitment] = getInputCommitments(
@@ -154,7 +154,7 @@ class BoilerplateGenerator {
             \n\n// read preimage for decremented state
             \n${stateName}_newOwnerPublicKey = ${newOwnerStatment}
             ${stateVarIds.join('\n')}
-            \nlet ${stateName}_preimage = await getCommitmentsById(${stateName}_stateVarId);
+            \nlet ${stateName}_preimage = await getCommitmentsById(${stateName}_stateVarId, contractId);
             \n const ${stateName}_newCommitmentValue = generalise(${increment});
             // First check if required commitments exist or not
             \nlet [${stateName}_commitmentFlag, ${stateName}_0_oldCommitment, ${stateName}_1_oldCommitment] = getInputCommitments(
@@ -171,7 +171,7 @@ class BoilerplateGenerator {
 
                 \n const tx = await joinCommitments('${contractName}', '${mappingName}', secretKey, publicKey, [${stateVarId.join(' , ')}], [${stateName}_0_oldCommitment, ${stateName}_1_oldCommitment], [${stateName}_witness_0, ${stateName}_witness_1], instance, contractAddr, web3);
 
-                ${stateName}_preimage = await getCommitmentsById(${stateName}_stateVarId);
+                ${stateName}_preimage = await getCommitmentsById(${stateName}_stateVarId, contractId);
 
                 [${stateName}_commitmentFlag, ${stateName}_0_oldCommitment, ${stateName}_1_oldCommitment] = getInputCommitments(
                   publicKey.hex(32),
@@ -477,12 +477,12 @@ sendTransaction = {
             },
             secretKey: ${stateName}_newOwnerPublicKey.integer === publicKey.integer ? secretKey : null,
             isNullified: false,
-          });`];
+          }, contractId);`];
         case 'decrement':
           value = structProperties ? `{ ${structProperties.map((p, i) => `${p}: ${stateName}_change.integer[${i}]`)} }` : `${stateName}_change`;
           return [`
-            \nawait markNullified(generalise(${stateName}_0_oldCommitment._id), secretKey.hex(32));
-            \nawait markNullified(generalise(${stateName}_1_oldCommitment._id), secretKey.hex(32));
+            \nawait markNullified(generalise(${stateName}_0_oldCommitment._id), secretKey.hex(32), contractId);
+            \nawait markNullified(generalise(${stateName}_1_oldCommitment._id), secretKey.hex(32), contractId);
             \nawait storeCommitment({
               hash: ${stateName}_2_newCommitment,
               name: '${mappingName}',
@@ -495,16 +495,16 @@ sendTransaction = {
               },
               secretKey: ${stateName}_newOwnerPublicKey.integer === publicKey.integer ? secretKey : null,
               isNullified: false,
-            });`];
+            }, contractId);`];
         case 'whole':
           switch (burnedOnly) {
             case true:
               return [`
-                \nawait markNullified(${stateName}_currentCommitment, secretKey.hex(32));`];
+                \nawait markNullified(${stateName}_currentCommitment, secretKey.hex(32), contractId);`];
             default:
               value = structProperties ? `{ ${structProperties.map(p => `${p}: ${stateName}.${p}`)} }` : `${stateName}`;
               return [`
-                \nif (${stateName}_commitmentExists) await markNullified(${stateName}_currentCommitment, secretKey.hex(32));
+                \nif (${stateName}_commitmentExists) await markNullified(${stateName}_currentCommitment, secretKey.hex(32), contractId);
                 \nawait storeCommitment({
                   hash: ${stateName}_newCommitment,
                   name: '${mappingName}',
@@ -517,7 +517,7 @@ sendTransaction = {
                   },
                   secretKey: ${stateName}_newOwnerPublicKey.integer === publicKey.integer ? secretKey : null,
                   isNullified: false,
-                });`];
+                }, contractId);`];
           }
         default:
           throw new TypeError(stateType);
@@ -543,7 +543,7 @@ integrationTestBoilerplate = {
         console.log('Decrypted plainText:');
         console.log(plainText);
         const salt = plainText[plainText.length - 1];
-        const commitmentSet = await getAllCommitments();
+        const commitmentSet = await getAllCommitments(contractId);
         const thisCommit = commitmentSet.find(c => generalise(c.preimage.salt).integer === generalise(salt).integer);
         assert.equal(!!thisCommit, true);
 
@@ -622,7 +622,7 @@ integrationApiServicesBoilerplate = {
     return `
       export async function service_allCommitments(req, res, next) {
         try {
-          const commitments = await getAllCommitments();
+          const commitments = await getAllCommitments(contractId);
           res.send({ commitments });
           await sleep(10);
         } catch (err) {
@@ -634,7 +634,7 @@ integrationApiServicesBoilerplate = {
       export async function service_getCommitmentsByState(req, res, next) {
         try {
           const { name, mappingKey } = req.body;
-          const commitments = await getCommitmentsByState(name, mappingKey);
+          const commitments = await getCommitmentsByState(name, mappingKey, contractId);
           res.send({ commitments });
           await sleep(10);
         } catch (err) {

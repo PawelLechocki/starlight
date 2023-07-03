@@ -430,8 +430,8 @@ export const OrchestrationCodeBoilerPlate: any = (node: any) => {
       // the main function
       if (node.name !== 'cnstrctr') lines.push(
         `\n\n// Initialisation of variables:
-        \nconst instance = await getContractInstance('${node.contractName}');
-        \nconst contractAddr = await getContractAddress('${node.contractName}');        `,
+        \nconst instance = await getContractInstance('${node.contractName}', contractAddress);
+        \nconst contractAddr = contractAddress;        `,
       );
       if (node.msgSenderParam)
         lines.push(`

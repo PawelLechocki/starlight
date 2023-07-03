@@ -383,7 +383,7 @@ export async function joinCommitments(
 		},
 		secretKey: secretKey,
 		isNullified: false,
-	});
+	}, contractAddr);
 
 	return { tx };
 }

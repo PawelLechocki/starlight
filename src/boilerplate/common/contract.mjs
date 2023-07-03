@@ -118,6 +118,7 @@ export async function registerKey(
 	_secretKey,
 	contractName,
   registerWithContract,
+  contractAddress
 ) {
 	let secretKey = generalise(_secretKey);
 	let publicKeyPoint = generalise(
@@ -133,8 +134,8 @@ export async function registerKey(
 		publicKey = compressStarlightKey(publicKeyPoint);
 	}
 	if (registerWithContract) {
-		const instance = await getContractInstance(contractName);
-		const contractAddr = await getContractAddress(contractName); 
+		const instance = await getContractInstance(contractName, contractAddress);
+		
 		const txData = await instance.methods.registerZKPPublicKey(publicKey.integer).encodeABI();	
 		let txParams = {
 			from: config.web3.options.defaultAccount,
