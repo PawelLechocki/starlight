@@ -1,0 +1,23 @@
+{
+  "name": "Assign",
+  "functionInfo": [
+    {
+      "name": "add",
+      "params": [
+        {
+          "name": "value",
+          "type": "uint256"
+        }
+      ]
+    },
+    {
+        "name": "remove",
+        "params": [
+          {
+            "name": "value",
+            "type": "uint256"
+          }
+        ]
+      }
+  ]
+}
