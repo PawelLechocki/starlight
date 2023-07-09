@@ -3,7 +3,7 @@
     "files": [
         {
             "nodeType": "SourceUnit",
-            "name": "WWW",
+            "name": "Assign",
             "license": "CC0",
             "nodes": [
                 {
@@ -23,7 +23,7 @@
                 },
                 {
                     "nodeType": "ContractDefinition",
-                    "name": "WWW",
+                    "name": "Assign",
                     "baseContracts": [
                         {
                             "nodeType": "InheritanceSpecifier",

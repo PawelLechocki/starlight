@@ -25,8 +25,6 @@ export function ControlBox(functionInfo: functionInfo) {
   async function handleSubmission(values: any) {
     setButtonLoading(true)
     // change param later
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
     await axios.post(`/${functionInfo.name}`, values)
 
     setButtonLoading(false);

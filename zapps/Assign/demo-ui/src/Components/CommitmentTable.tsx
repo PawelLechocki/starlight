@@ -57,7 +57,7 @@ export function CommitmentTable() {
           <Refresh />
         </ActionIcon>
       </div>
-      <Text>The commitments are sorted from oldest to most recent ones.</Text>
+      <Text>The commitments are sorted from oldest to the most recent ones.</Text>
       <br />
       <ScrollArea h={750}>
         {!commitments
