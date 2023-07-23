@@ -9,6 +9,7 @@ import { decrypt } from "./common/number-theory.mjs";
 import { getAllCommitments, getCommitmentsByState } from "./common/commitment-storage.mjs";
 import web3 from "./common/web3.mjs";
 
+
 /**
       Welcome to your zApp's integration test!
       Depending on how your functions interact and the range of inputs they expect, the below may need to be changed.
@@ -31,9 +32,19 @@ export async function service_FUNCTION_NAME (req, res, next){
     throw new Error(err);
   }
 	try {
-    await startEventFilter('CONTRACT_NAME');
+
+    const contractId = req.headers.contractid;
+		if (!contractId) throw new Error("No contractId specified");
+		const contractInfo = await getContractInfo(contractId);
+		const contractAddress = contractInfo.contractAddress;
+		const block = contractInfo.deploymentBlock;
+
+		logger.debug(JSON.stringify(req.headers))
+		logger.debug(`Received from header: ${contractId}, ${contractAddress}`);
+
+    await startEventFilter('CONTRACT_NAME', contractAddress, contractId, block);
     const FUNCTION_SIG;
-    const { tx , encEvent, _RESPONSE_} = await FUNCTION_NAME(FUNCTION_SIG);
+    const { tx , encEvent, _RESPONSE_} = await FUNCTION_NAME(contractAddress, contractId, FUNCTION_SIG);
     // prints the tx
     console.log(tx);
     res.send({tx, encEvent, _RESPONSE_});

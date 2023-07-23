@@ -73,7 +73,7 @@ class BoilerplateGenerator {
       return [
         `
         \n\n// Read dbs for keys and previous commitment values:
-        \nif (!fs.existsSync(keyDb)) await registerKey(utils.randomHex(31), '${contractName}', ${onChainKeyRegistry});
+        \nif (!fs.existsSync(keyDb)) await registerKey(utils.randomHex(31), '${contractName}', ${onChainKeyRegistry}, contractId);
         const keys = JSON.parse(
                     fs.readFileSync(keyDb, 'utf-8', err => {
                       console.log(err);
@@ -227,8 +227,8 @@ class BoilerplateGenerator {
         case 'partitioned':
           return [`
             \n\n// generate witness for partitioned state
-            ${stateName}_witness_0 = await getMembershipWitness('${contractName}', generalise(${stateName}_0_oldCommitment._id).integer);
-            ${stateName}_witness_1 = await getMembershipWitness('${contractName}', generalise(${stateName}_1_oldCommitment._id).integer);
+            ${stateName}_witness_0 = await getMembershipWitness('${contractName}', generalise(${stateName}_0_oldCommitment._id).integer, contractId);
+            ${stateName}_witness_1 = await getMembershipWitness('${contractName}', generalise(${stateName}_1_oldCommitment._id).integer, contractId);
             const ${stateName}_0_index = generalise(${stateName}_witness_0.index);
             const ${stateName}_1_index = generalise(${stateName}_witness_1.index);
             const ${stateName}_root = generalise(${stateName}_witness_0.root);
@@ -239,15 +239,15 @@ class BoilerplateGenerator {
             \n\n// generate witness for whole state
             const ${stateName}_emptyPath = new Array(32).fill(0);
             const ${stateName}_witness = ${stateName}_witnessRequired
-            \t? await getMembershipWitness('${contractName}', ${stateName}_currentCommitment.integer)
-            \t: { index: 0, path:  ${stateName}_emptyPath, root: await getRoot('${contractName}') || 0 };
+            \t? await getMembershipWitness('${contractName}', ${stateName}_currentCommitment.integer, contractId)
+            \t: { index: 0, path:  ${stateName}_emptyPath, root: await getRoot('${contractName}'), contractId || 0 };
             const ${stateName}_index = generalise(${stateName}_witness.index);
             const ${stateName}_root = generalise(${stateName}_witness.root);
             const ${stateName}_path = generalise(${stateName}_witness.path).all;\n`];
         case 'accessedOnly':
           return [`
             \n\n// generate witness for whole accessed state
-            const ${stateName}_witness = await getMembershipWitness('${contractName}', ${stateName}_currentCommitment.integer);
+            const ${stateName}_witness = await getMembershipWitness('${contractName}', ${stateName}_currentCommitment.integer, contractId);
             const ${stateName}_index = generalise(${stateName}_witness.index);
             const ${stateName}_root = generalise(${stateName}_witness.root);
             const ${stateName}_path = generalise(${stateName}_witness.path).all;\n`];
@@ -403,7 +403,8 @@ class BoilerplateGenerator {
         `\nimport utils from 'zkp-utils';`,
         `\nimport GN from 'general-number';`,
         `\nimport fs from 'fs';
-        \n`,
+         \n import axios from "axios;
+          \n`,
         `\nimport { getContractInstance, getContractAddress, registerKey } from './common/contract.mjs';`,
         `\nimport { storeCommitment, getCurrentWholeCommitment, getCommitmentsById, getAllCommitments, getInputCommitments, joinCommitments, markNullified,getnullifierMembershipWitness,getupdatedNullifierPaths,temporaryUpdateNullifier,updateNullifierTree } from './common/commitment-storage.mjs';`,
         `\nimport { generateProof } from './common/zokrates.mjs';`,
@@ -575,12 +576,12 @@ sendTransaction = {
             },
             secretKey: ${stateName}_newOwnerPublicKey.integer === publicKey.integer ? secretKey : null,
             isNullified: false,
-          });`];
+          }, contractId);`];
         case 'decrement':
           value = structProperties ? `{ ${structProperties.map((p, i) => `${p}: ${stateName}_change.integer[${i}]`)} }` : `${stateName}_change`;
           return [`
-            \nawait markNullified(generalise(${stateName}_0_oldCommitment._id), secretKey.hex(32));
-            \nawait markNullified(generalise(${stateName}_1_oldCommitment._id), secretKey.hex(32));
+            \nawait markNullified(generalise(${stateName}_0_oldCommitment._id), secretKey.hex(32), contractId);
+            \nawait markNullified(generalise(${stateName}_1_oldCommitment._id), secretKey.hex(32), contractId);
             \nawait storeCommitment({
               hash: ${stateName}_2_newCommitment,
               name: '${mappingName}',
@@ -593,12 +594,12 @@ sendTransaction = {
               },
               secretKey: ${stateName}_newOwnerPublicKey.integer === publicKey.integer ? secretKey : null,
               isNullified: false,
-            });`];
+            }, contractId);`];
         case 'whole':
           switch (burnedOnly) {
             case true:
               return [`
-                \nawait markNullified(${stateName}_currentCommitment, secretKey.hex(32));`];
+                \nawait markNullified(${stateName}_currentCommitment, secretKey.hex(32), contractId);`];
             default:
               value = structProperties ? `{ ${structProperties.map(p => `${p}: ${stateName}.${p}`)} }` : `${stateName}`;
               return [`
@@ -616,7 +617,7 @@ sendTransaction = {
                   },
                   secretKey: ${stateName}_newOwnerPublicKey.integer === publicKey.integer ? secretKey : null,
                   isNullified: false,
-                });`];
+                }, contractId);`];
           }
         default:
           throw new TypeError(stateType);
@@ -693,7 +694,7 @@ integrationApiServicesBoilerplate = {
     `
   },
   preStatements(): string{
-    return ` import { startEventFilter, getSiblingPath } from './common/timber.mjs';\nimport fs from "fs";\nimport logger from './common/logger.mjs';\nimport { decrypt } from "./common/number-theory.mjs";\nimport { getAllCommitments, getCommitmentsByState } from "./common/commitment-storage.mjs";\nimport web3 from './common/web3.mjs';\n\n
+    return ` import { startEventFilter, getSiblingPath } from './common/timber.mjs';\nimport fs from "fs";\nimport logger from './common/logger.mjs';\nimport { decrypt } from "./common/number-theory.mjs";\nimport { getAllCommitments, getCommitmentsByState } from "./common/commitment-storage.mjs";\nimport web3 from './common/web3.mjs';\n import getContractInfo from "./common/getContractInfo.mjs";\n\n
         /**
       NOTE: this is the api service file, if you need to call any function use the correct url and if Your input contract has two functions, add() and minus().
       minus() cannot be called before an initial add(). */
@@ -721,7 +722,9 @@ integrationApiServicesBoilerplate = {
     return `
       export async function service_allCommitments(req, res, next) {
         try {
-          const commitments = await getAllCommitments();
+          const contractId = req.headers.contractid;
+          if (!contractId) throw new Error("No ContractId specified");
+          const commitments = await getAllCommitments(contractId);
           res.send({ commitments });
           await sleep(10);
         } catch (err) {
@@ -732,8 +735,11 @@ integrationApiServicesBoilerplate = {
       
       export async function service_getCommitmentsByState(req, res, next) {
         try {
+          const contractId = req.headers.contractid;
+		      if (!contractId) throw new Error("No ContractId specified");
+
           const { name, mappingKey } = req.body;
-          const commitments = await getCommitmentsByState(name, mappingKey);
+          const commitments = await getCommitmentsByState(name, mappingKey, contractId);
           res.send({ commitments });
           await sleep(10);
         } catch (err) {

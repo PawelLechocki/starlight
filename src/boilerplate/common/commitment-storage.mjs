@@ -38,7 +38,7 @@ let temp_smt_tree = SMT(hlt[0]); // for temporary updates before proof generatio
 export const getHash = tree => reduceTree(poseidonConcatHash, tree);
 
 // function to format a commitment for a mongo db and store it
-export async function storeCommitment(commitment) {
+export async function storeCommitment(commitment, contractId) {
   const connection = await mongo.connection(MONGO_URL);
   const db = connection.db(COMMITMENTS_DB);
   // we'll also compute and store the nullifier hash.
@@ -59,38 +59,38 @@ export async function storeCommitment(commitment) {
     nullifier: commitment.secretKey? nullifierHash.hex(32) : null,
   };
   logger.debug(`Storing commitment ${data._id}`);
-  return db.collection(COMMITMENTS_COLLECTION).insertOne(data);
+  return db.collection(`${COMMITMENTS_COLLECTION}_${contractId}`).insertOne(data);
 }
 
 // function to retrieve commitment with a specified stateVarId
-export async function getCommitmentsById(id) {
+export async function getCommitmentsById(id, contractId) {
 	const connection = await mongo.connection(MONGO_URL);
 	const db = connection.db(COMMITMENTS_DB);
 	const commitments = await db
-	  .collection(COMMITMENTS_COLLECTION)
+	  .collection(`${COMMITMENTS_COLLECTION}_${contractId}`)
 	  .find({ 'preimage.stateVarId': generalise(id).hex(32) })
 	  .toArray();
 	return commitments;
   }
 
 // function to retrieve commitment with a specified stateVarId
-export async function getCurrentWholeCommitment(id) {
+export async function getCurrentWholeCommitment(id, contractId) {
 	const connection = await mongo.connection(MONGO_URL);
 	const db = connection.db(COMMITMENTS_DB);
 	const commitment = await db
-	  .collection(COMMITMENTS_COLLECTION)
+	  .collection(`${COMMITMENTS_COLLECTION}_${contractId}`)
 	  .findOne({ 'preimage.stateVarId': generalise(id).hex(32), isNullified: false });
 	return commitment;
   }
 
 // function to retrieve commitment with a specified stateName
-export async function getCommitmentsByState(name, mappingKey = null) {
+export async function getCommitmentsByState(name, mappingKey = null, contractId) {
 	const connection = await mongo.connection(MONGO_URL);
 	const db = connection.db(COMMITMENTS_DB);
 	const query = { 'name': name };
 	if (mappingKey) query['mappingKey'] = generalise(mappingKey).integer;
 	const commitments = await db
-		.collection(COMMITMENTS_COLLECTION)
+		.collection(`${COMMITMENTS_COLLECTION}_${contractId}`)
 		.find(query)
 		.toArray();
 	return commitments;
@@ -108,12 +108,12 @@ export async function getCommitmentsByState(name, mappingKey = null) {
 
 
 // function to update an existing commitment
-export async function updateCommitment(commitment, updates) {
+export async function updateCommitment(commitment, updates, contractId) {
   const connection = await mongo.connection(MONGO_URL);
   const db = connection.db(COMMITMENTS_DB);
   const query = { _id: commitment._id };
   const update = { $set: updates };
-  return db.collection(COMMITMENTS_COLLECTION).updateOne(query, update);
+  return db.collection(`${COMMITMENTS_COLLECTION}_${contractId}`).updateOne(query, update);
 }
 
 // This is a helper function to insertLeaf in smt that calls the recursion
@@ -154,12 +154,12 @@ function _insertLeaf(val, tree, binArr){
   };
 
 // function to mark a commitment as nullified for a mongo db and update the nullifier tree
-export async function markNullified(commitmentHash, secretKey = null) {
+export async function markNullified(commitmentHash, secretKey = null, contractId) {
     const connection = await mongo.connection(MONGO_URL);
 	const db = connection.db(COMMITMENTS_DB);
     const query = { _id: commitmentHash.hex(32) };
 	const commitment = await db
-	.collection(COMMITMENTS_COLLECTION)
+	.collection(`${COMMITMENTS_COLLECTION}_${contractId}`)
 	.findOne(query);
 	const nullifier = poseidonHash([
 		BigInt(commitment.preimage.stateVarId),
@@ -175,7 +175,7 @@ export async function markNullified(commitmentHash, secretKey = null) {
 	// updating the original tree
 	smt_tree = temp_smt_tree;
 
-    return db.collection(COMMITMENTS_COLLECTION).updateOne(query, update);
+    return db.collection(`${COMMITMENTS_COLLECTION}_${contractId}`).updateOne(query, update);
   }
 
 
@@ -451,8 +451,8 @@ export async function joinCommitments(
 
 	tx = tx[0];
 
-	await markNullified(generalise(commitments[0]._id), secretKey.hex(32));
-	await markNullified(generalise(commitments[1]._id), secretKey.hex(32));
+	await markNullified(generalise(commitments[0]._id), secretKey.hex(32), contractId);
+	await markNullified(generalise(commitments[1]._id), secretKey.hex(32), contractId);
 	await storeCommitment({
 		hash: newCommitment,
 		name: statename,
@@ -465,7 +465,7 @@ export async function joinCommitments(
 		},
 		secretKey: secretKey,
 		isNullified: false,
-	});
+	}, contractAddr);
 
 	return { tx };
 }

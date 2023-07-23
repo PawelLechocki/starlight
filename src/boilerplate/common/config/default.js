@@ -81,6 +81,7 @@ module.exports = {
   MONGO_URL: 'mongodb://admin:admin@zapp-mongo:27017',
   COMMITMENTS_DB: process.env.MONGO_NAME,
   COMMITMENTS_COLLECTION: 'commitments',
+  INFO_COLLECTION: 'info',
   isLoggerEnabled: true,
   // web3:
   deployer: {

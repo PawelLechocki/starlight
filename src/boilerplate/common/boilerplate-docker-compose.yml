@@ -49,6 +49,7 @@ services:
       MONGO_NAME: zapp_db
       MONGO_USERNAME: admin
       MONGO_PASSWORD: admin
+      CONTRACT_API_ENDPOINT: https://ganache-api-test.azurewebsites.net/contracts/
     networks:
       - zapp_network
 
@@ -69,7 +70,7 @@ services:
 
   timber:
     build: 
-      context: https://github.com/EYBlockchain/timber.git#starlight/testnet:merkle-tree
+      context: https://github.com/EYBlockchain/timber.git#multiple-contracts:merkle-tree
       dockerfile: Dockerfile
     restart: on-failure
     depends_on:
@@ -96,6 +97,7 @@ services:
       MONGO_NAME: merkle_tree
       MONGO_USERNAME: admin
       MONGO_PASSWORD: admin
+      CONTRACT_API_ENDPOINT: https://ganache-api-test.azurewebsites.net/contracts/
     networks:
       - zapp_network
 

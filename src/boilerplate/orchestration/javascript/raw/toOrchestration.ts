@@ -430,8 +430,7 @@ export const OrchestrationCodeBoilerPlate: any = (node: any) => {
       // the main function
       if (node.name !== 'cnstrctr') lines.push(
         `\n\n// Initialisation of variables:
-        \nconst instance = await getContractInstance('${node.contractName}');
-        \nconst contractAddr = await getContractAddress('${node.contractName}');        `,
+        \nconst instance = await getContractInstance('${node.contractName}', contractAddress); `,
       );
       if (node.msgSenderParam)
         lines.push(`
@@ -483,7 +482,7 @@ export const OrchestrationCodeBoilerPlate: any = (node: any) => {
         if(rtnparams.length == 0) {
           return {
             signature: [
-              `\nexport default async function ${node.name}(${params} ${states}) {`,
+              `\nexport default async function ${node.name}(contractAddress, contractId,${params} ${states}) {`,
               `\n return  { tx, encEvent };
             \n}`,
             ],
@@ -494,7 +493,7 @@ export const OrchestrationCodeBoilerPlate: any = (node: any) => {
       if(rtnparams.includes('bool: bool')) {
         return {
           signature: [
-            `\nexport default async function ${node.name}(${params} ${states}) {`,
+            `\nexport default async function ${node.name}(contractAddress, contractId,${params} ${states}) {`,
             `\n const bool = true; \n return  { tx, encEvent,  ${rtnparams} };
           \n}`,
           ],
@@ -828,7 +827,7 @@ export const OrchestrationCodeBoilerPlate: any = (node: any) => {
           .${node.functionName}(${lines}${params[0][0]} ${params[0][1]} ${params[0][2]} ${params[0][3]} ${params[0][4]} ${params[0][5]} proof).encodeABI();
           \n	let txParams = {
             from: config.web3.options.defaultAccount,
-            to: contractAddr,
+            to: contractAddress,
             gas: config.web3.options.defaultGas,
             gasPrice: config.web3.options.defaultGasPrice,
             data: txData,

@@ -21,7 +21,8 @@ export const contractPath = (contractName) => {
 
 const { options } = config.web3;
 
-export async function getContractInterface(contractName) {
+export async function getContractInterface(contractName, deployedAddress) {
+	logger.debug(`getContractInstance: ${contractName}, ${deployedAddress}`)
 	const path = contractPath(contractName);
   const contractInterface = JSON.parse(fs.readFileSync(path, 'utf8'));
 	// logger.debug('\ncontractInterface:', contractInterface);
@@ -118,6 +119,7 @@ export async function registerKey(
 	_secretKey,
 	contractName,
   registerWithContract,
+  contractAddr
 ) {
 	let secretKey = generalise(_secretKey);
 	let publicKeyPoint = generalise(
@@ -133,8 +135,7 @@ export async function registerKey(
 		publicKey = compressStarlightKey(publicKeyPoint);
 	}
 	if (registerWithContract) {
-		const instance = await getContractInstance(contractName);
-		const contractAddr = await getContractAddress(contractName); 
+		const instance = await getContractInstance(contractName, contractAddr);
 		const txData = await instance.methods.registerZKPPublicKey(publicKey.integer).encodeABI();	
 		let txParams = {
 			from: config.web3.options.defaultAccount,
