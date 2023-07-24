@@ -403,7 +403,7 @@ class BoilerplateGenerator {
         `\nimport utils from 'zkp-utils';`,
         `\nimport GN from 'general-number';`,
         `\nimport fs from 'fs';
-         \n import axios from "axios;
+         \n import axios from 'axios';
           \n`,
         `\nimport { getContractInstance, getContractAddress, registerKey } from './common/contract.mjs';`,
         `\nimport { storeCommitment, getCurrentWholeCommitment, getCommitmentsById, getAllCommitments, getInputCommitments, joinCommitments, markNullified,getnullifierMembershipWitness,getupdatedNullifierPaths,temporaryUpdateNullifier,updateNullifierTree } from './common/commitment-storage.mjs';`,
