@@ -240,7 +240,7 @@ class BoilerplateGenerator {
             const ${stateName}_emptyPath = new Array(32).fill(0);
             const ${stateName}_witness = ${stateName}_witnessRequired
             \t? await getMembershipWitness('${contractName}', ${stateName}_currentCommitment.integer, contractId)
-            \t: { index: 0, path:  ${stateName}_emptyPath, root: await getRoot('${contractName}'), contractId || 0 };
+            \t: { index: 0, path:  ${stateName}_emptyPath, root: await getRoot('${contractName}', contractId) || 0};
             const ${stateName}_index = generalise(${stateName}_witness.index);
             const ${stateName}_root = generalise(${stateName}_witness.root);
             const ${stateName}_path = generalise(${stateName}_witness.path).all;\n`];
@@ -403,7 +403,7 @@ class BoilerplateGenerator {
         `\nimport utils from 'zkp-utils';`,
         `\nimport GN from 'general-number';`,
         `\nimport fs from 'fs';
-         \n import axios from "axios;
+         \n import axios from 'axios';
           \n`,
         `\nimport { getContractInstance, getContractAddress, registerKey } from './common/contract.mjs';`,
         `\nimport { storeCommitment, getCurrentWholeCommitment, getCommitmentsById, getAllCommitments, getInputCommitments, joinCommitments, markNullified,getnullifierMembershipWitness,getupdatedNullifierPaths,temporaryUpdateNullifier,updateNullifierTree } from './common/commitment-storage.mjs';`,
@@ -694,7 +694,7 @@ integrationApiServicesBoilerplate = {
     `
   },
   preStatements(): string{
-    return ` import { startEventFilter, getSiblingPath } from './common/timber.mjs';\nimport fs from "fs";\nimport logger from './common/logger.mjs';\nimport { decrypt } from "./common/number-theory.mjs";\nimport { getAllCommitments, getCommitmentsByState } from "./common/commitment-storage.mjs";\nimport web3 from './common/web3.mjs';\n import getContractInfo from "./common/getContractInfo.mjs";\n\n
+    return ` import { startEventFilter, getSiblingPath } from './common/timber.mjs';\nimport fs from "fs";\nimport logger from './common/logger.mjs';\nimport { decrypt } from "./common/number-theory.mjs";\nimport { getAllCommitments, getCommitmentsByState } from "./common/commitment-storage.mjs";\nimport web3 from './common/web3.mjs';\n import { getContractInfo } from "./common/contract.mjs";\n\n
         /**
       NOTE: this is the api service file, if you need to call any function use the correct url and if Your input contract has two functions, add() and minus().
       minus() cannot be called before an initial add(). */

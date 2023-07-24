@@ -2,8 +2,11 @@ import fs from 'fs';
 import config from 'config';
 import GN from 'general-number';
 import utils from 'zkp-utils';
+import axios from 'axios';
 import Web3 from './web3.mjs';
 import logger from './logger.mjs';
+import mongo from './mongo.mjs';
+
 
 import {
 	scalarMult,
@@ -14,6 +17,7 @@ import {
 const web3 = Web3.connection();
 const { generalise } = GN;
 const keyDb = '/app/orchestration/common/db/key.json';
+const { MONGO_URL, COMMITMENTS_DB, INFO_COLLECTION } = config;
 
 export const contractPath = (contractName) => {
 	return `/app/build/contracts/${contractName}.json`;
@@ -82,6 +86,32 @@ export async function getContractBytecode(contractName) {
 	const contractInterface = await getContractInterface(contractName);
 	return contractInterface.evm.bytecode.object;
 }
+
+export async function getContractInfo(contractId) {
+	// Connect to the DB
+	const connection = await mongo.connection(MONGO_URL);
+	const db = connection.db(COMMITMENTS_DB);
+  
+	const info = await db.collection(`${INFO_COLLECTION}_${contractId}`).findOne({
+	  contractId: contractId,
+	});
+  
+	// Check if doc exists in zapp's mongo
+	if (info) {
+	  return info;
+	} else {
+	  logger.debug("Contract info entry not detected. Fetching from API.");
+	  const contractInfo = await axios.get(process.env.CONTRACT_API_ENDPOINT + contractId);
+	  const info = {
+		contractId: contractId,
+		contractAddress: contractInfo.data.address,
+		deploymentBlock: contractInfo.data.deploymentBlock,
+		network: contractInfo.data.network,
+	  };
+	  await db.collection(`${INFO_COLLECTION}_${contractId}`).insertOne(info);
+	  return info;
+	}
+  }
 
 export async function deploy(
 	userAddress,
