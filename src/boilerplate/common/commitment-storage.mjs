@@ -99,12 +99,12 @@ export async function getCommitmentsByState(name, mappingKey = null, contractId)
 /**
  * @returns all the commitments existent in this database.
  */
- export async function getAllCommitments() {
+export async function getAllCommitments(contractId) {
 	const connection = await mongo.connection(MONGO_URL);
 	const db = connection.db(COMMITMENTS_DB);
-	const allCommitments = await db.collection(COMMITMENTS_COLLECTION).find().toArray();
+	const allCommitments = await db.collection(`${COMMITMENTS_COLLECTION}_${contractId}`).find().toArray();
 	return allCommitments;
-  }
+}
 
 
 // function to update an existing commitment
@@ -276,6 +276,7 @@ export async function joinCommitments(
 	instance,
 	contractAddr,
 	web3,
+	contractId
 ) {
 	logger.warn(
 		"Existing Commitments are not appropriate and we need to call Join Commitment Circuit. It will generate proof to join commitments, this will require an on-chain verification"
