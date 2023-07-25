@@ -41,7 +41,7 @@ class BoilerplateGenerator {
           \n // Initialise commitment preimage of whole accessed state:
           ${stateVarIds.join('\n')}
           \nlet ${stateName}_commitmentExists = true;
-          \nconst ${stateName}_commitment = await getCurrentWholeCommitment(${stateName}_stateVarId);
+          \nconst ${stateName}_commitment = await getCurrentWholeCommitment(${stateName}_stateVarId, contractId);
           \nconst ${stateName}_preimage = ${stateName}_commitment.preimage;
           \nconst ${stateName} = generalise(${stateName}_preimage.value);`];
         default:
@@ -50,7 +50,7 @@ class BoilerplateGenerator {
               ${stateVarIds.join('\n')}
               \nlet ${stateName}_commitmentExists = true;
               let ${stateName}_witnessRequired = true;
-              \nconst ${stateName}_commitment = await getCurrentWholeCommitment(${stateName}_stateVarId);
+              \nconst ${stateName}_commitment = await getCurrentWholeCommitment(${stateName}_stateVarId, contractId);
               \nlet ${stateName}_preimage = {
               \tvalue: ${structProperties ? `{` + structProperties.map(p => `${p}: 0`) + `}` : `0`},
               \tsalt: 0,
@@ -131,7 +131,7 @@ class BoilerplateGenerator {
               \n\n// read preimage for decremented state
               ${stateName}_newOwnerPublicKey = ${newOwnerStatment}
               ${stateVarIds.join('\n')}
-              \nlet ${stateName}_preimage = await getCommitmentsById(${stateName}_stateVarId);
+              \nlet ${stateName}_preimage = await getCommitmentsById(${stateName}_stateVarId, contractId);
               \nconst ${stateName}_newCommitmentValue = generalise([${Object.values(increment).map((inc) => `generalise(${inc})`)}]).all;
 
               \nlet [${stateName}_commitmentFlag, ${stateName}_0_oldCommitment, ${stateName}_1_oldCommitment] = getInputCommitments(
@@ -154,7 +154,7 @@ class BoilerplateGenerator {
             \n\n// read preimage for decremented state
             \n${stateName}_newOwnerPublicKey = ${newOwnerStatment}
             ${stateVarIds.join('\n')}
-            \nlet ${stateName}_preimage = await getCommitmentsById(${stateName}_stateVarId);
+            \nlet ${stateName}_preimage = await getCommitmentsById(${stateName}_stateVarId, contractId);
             \n const ${stateName}_newCommitmentValue = generalise(${increment});
             // First check if required commitments exist or not
             \nlet [${stateName}_commitmentFlag, ${stateName}_0_oldCommitment, ${stateName}_1_oldCommitment] = getInputCommitments(
@@ -169,9 +169,9 @@ class BoilerplateGenerator {
                 \n${stateName}_witness_0 = await getMembershipWitness('${contractName}', generalise(${stateName}_0_oldCommitment._id).integer);
                 \n${stateName}_witness_1 = await getMembershipWitness('${contractName}', generalise(${stateName}_1_oldCommitment._id).integer);
 
-                \n const tx = await joinCommitments('${contractName}', '${mappingName}', secretKey, publicKey, [${stateVarId.join(' , ')}], [${stateName}_0_oldCommitment, ${stateName}_1_oldCommitment], [${stateName}_witness_0, ${stateName}_witness_1], instance, contractAddr, web3);
+                \n const tx = await joinCommitments('${contractName}', '${mappingName}', secretKey, publicKey, [${stateVarId.join(' , ')}], [${stateName}_0_oldCommitment, ${stateName}_1_oldCommitment], [${stateName}_witness_0, ${stateName}_witness_1], instance, contractAddress, web3, contractId);
 
-                ${stateName}_preimage = await getCommitmentsById(${stateName}_stateVarId);
+                ${stateName}_preimage = await getCommitmentsById(${stateName}_stateVarId, contractId);
 
                 [${stateName}_commitmentFlag, ${stateName}_0_oldCommitment, ${stateName}_1_oldCommitment] = getInputCommitments(
                   publicKey.hex(32),
