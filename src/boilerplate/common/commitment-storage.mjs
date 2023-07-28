@@ -466,7 +466,7 @@ export async function joinCommitments(
 		},
 		secretKey: secretKey,
 		isNullified: false,
-	}, contractAddr);
+	}, contractId);
 
 	return { tx };
 }
