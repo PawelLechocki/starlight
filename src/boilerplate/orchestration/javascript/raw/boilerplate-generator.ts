@@ -73,7 +73,7 @@ class BoilerplateGenerator {
       return [
         `
         \n\n// Read dbs for keys and previous commitment values:
-        \nif (!fs.existsSync(keyDb)) await registerKey(utils.randomHex(31), '${contractName}', ${onChainKeyRegistry}, contractId);
+        \nif (!fs.existsSync(keyDb)) await registerKey(utils.randomHex(31), '${contractName}', ${onChainKeyRegistry}, contractAddress);
         const keys = JSON.parse(
                     fs.readFileSync(keyDb, 'utf-8', err => {
                       console.log(err);
